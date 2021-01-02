@@ -12,7 +12,8 @@ class GameController
 		~GameController();
 		void displayBoard() const;
 		void playGame();
-		int getMove(int& currentRow, int& currentCol, int& moveRow, int& moveCol);
+		int getSelection(int& row, int& col);
+
 
 	private:
 		GameBoard* m_board;

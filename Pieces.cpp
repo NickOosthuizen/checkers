@@ -11,6 +11,7 @@ Piece::Piece(int row, int col, int color, GameBoard* board)
 	m_col = col;
 	m_color = color;
 	m_board = board;
+	m_king = false;
 }
 
 Piece::~Piece() 
@@ -26,9 +27,14 @@ int Piece::pieceColor() const
 	return m_color;
 }
 
-GameBoard* Piece::pieceBoard() const
+void Piece::makeKing()
 {
-	return m_board;
+	m_king = true;
+}
+
+bool Piece::isKing() const
+{
+	return m_king;
 }
 
 void Piece::updateCoordinates(int row, int col)
@@ -37,14 +43,13 @@ void Piece::updateCoordinates(int row, int col)
 	m_col = col;
 }
 
-BlackPiece::BlackPiece(int row, int col, GameBoard* board)
-	:Piece(row, col, BLACK, board)
-{}
-
-BlackPiece::~BlackPiece() 
-{}
-
-int BlackPiece::movePiece(int row, int col)
+/*
+* Changes the coordinates of the piece if the given row and column are valid
+* jump restrict means that only a jump move is allowed in the given function call
+* If a piece is taken in the move, TAKE_PIECE is returned, but if just a successful move occurs,
+* SUCCESS is returned
+*/
+int Piece::movePiece(int row, int col, bool jumpRestrict)
 {
 	if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE)
 		return INVALID_COORD;
@@ -52,118 +57,26 @@ int BlackPiece::movePiece(int row, int col)
 	std::pair<int, int> coord = pieceCoordinates();
 	int curRow = coord.first;
 	int curCol = coord.second;
-	GameBoard* board = pieceBoard();
+	int adjacentColor;
 
-	if (curRow > row)
-		return INVALID_COORD;
+	if (!m_king)
+		if (curRow > row && m_color == BLACK || curRow < row && m_color == RED)
+			return INVALID_COORD;
 	if (curRow == row || curCol == col)
 		return INVALID_COORD;
-	if (board->pieceAtCoord(row, col) != EMPTY)
+	if (m_board->pieceAtCoord(row, col) != EMPTY)
 		return INVALID_COORD;
-
-	if (row - curRow == 1 && abs(curCol - col) == 1)
+	
+	if (!jumpRestrict)
 	{
-		updateCoordinates(row, col);
-		return SUCCESS;
-	}
-	else if (row - curRow == 2 && abs(curCol - col) == 2)
-	{
-		int adjacentRow = curRow + 1;
-		int adjacentCol;
-		if (col > curCol)
-			adjacentCol = curCol + 1;
-		else
-			adjacentCol = curCol - 1;
-
-		if (board->pieceAtCoord(adjacentRow, adjacentCol) == WHITE)
+		if (abs(curRow - row) == 1 && abs(curCol - col) == 1)
 		{
-			board->takePiece(adjacentRow, adjacentCol);
 			updateCoordinates(row, col);
 			return SUCCESS;
 		}
-		else
-			return INVALID_COORD;
-	}
-	return INVALID_COORD;
-}
-
-WhitePiece::WhitePiece(int row, int col, GameBoard* board)
-	:Piece(row, col, WHITE, board)
-{}
-
-WhitePiece::~WhitePiece()
-{}
-
-int WhitePiece::movePiece(int row, int col)
-{
-	if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE)
-		return INVALID_COORD;
-
-	std::pair<int, int> coord = pieceCoordinates();
-	int curRow = coord.first;
-	int curCol = coord.second;
-	GameBoard* board = pieceBoard();
-
-	if (curRow < row)
-		return INVALID_COORD;
-	if (curRow == row || curCol == col)
-		return INVALID_COORD;
-	if (board->pieceAtCoord(row, col) != EMPTY)
-		return INVALID_COORD;
-
-	if (curRow - row == 1 && abs(curCol - col) == 1)
-	{
-		updateCoordinates(row, col);
-		return SUCCESS;
 	}
 
-	else if (curRow - row == 2 && abs(curCol - col) == 2)
-	{
-		int adjacentRow = curRow - 1;
-		int adjacentCol;
-		if (col > curCol)
-			adjacentCol = curCol + 1;
-		else
-			adjacentCol = curCol - 1;
-
-		if (board->pieceAtCoord(adjacentRow, adjacentCol) == BLACK)
-		{
-			board->takePiece(adjacentRow, adjacentCol);
-			updateCoordinates(row, col);
-			return SUCCESS;
-		}
-		else
-			return INVALID_COORD;
-	}
-	return INVALID_COORD;
-}
-
-King::King(int row, int col, int color, GameBoard* board)
-	:Piece(row, col, color, board)
-{}
-
-int King::movePiece(int row, int col)
-{
-	if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE)
-		return INVALID_COORD;
-
-	std::pair<int, int> coord = pieceCoordinates();
-	int curRow = coord.first;
-	int curCol = coord.second;
-	GameBoard* board = pieceBoard();
-
-	if (curRow == row || curCol == col)
-		return INVALID_COORD;
-	if (board->pieceAtCoord(row, col) != EMPTY)
-		return INVALID_COORD;
-
-	if (abs(curRow - row) == 1 && abs(curCol - col) == 1)
-	{
-		updateCoordinates(row, col);
-		return SUCCESS;
-	}
-
-	else if (abs(curRow - row) == 2 && abs(curCol - col) == 2)
+	if (abs(curRow - row) == 2 && abs(curCol - col) == 2)
 	{
 		int adjacentRow;
 		int adjacentCol;
@@ -178,20 +91,17 @@ int King::movePiece(int row, int col)
 		else
 			adjacentCol = curCol - 1;
 
-		if (board->pieceAtCoord(adjacentRow, adjacentCol) != pieceColor())
+		adjacentColor = m_board->pieceAtCoord(adjacentRow, adjacentCol);
+		if (adjacentColor != m_color && adjacentColor != EMPTY)
 		{
-			board->takePiece(adjacentRow, adjacentCol);
+			m_board->takePiece(adjacentRow, adjacentCol);
 			updateCoordinates(row, col);
-			return SUCCESS;
+			return TAKE_PIECE;
 		}
 		else
 			return INVALID_COORD;
 	}
 	return INVALID_COORD;
-	
+
+
 }
-
-King::~King()
-{}
-
-

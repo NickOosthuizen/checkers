@@ -17,8 +17,27 @@ GameController::~GameController()
 	delete m_board;
 }
 
+
+/*
+* Draws the board based off the current state of the gameboard grid
+* If a piece is selected, it will have a blue background
+* Red pieces are colored red 
+* Color outputs use ANSI color codes
+* \033 = ESC character
+* [num;num;...m = specify color codes
+* 44: blackground blue
+* 31: foreground red
+*/
 void GameController::displayBoard() const
 {
+	int selectedRow = -1;
+	int selectedCol = -1;
+	if (m_board->pieceSelected())
+	{
+		selectedRow = m_board->selectedCoords().first;
+		selectedCol = m_board->selectedCoords().second;
+	}
+
 	std::cout << "  ";
 	for (int i = 0; i < BOARD_SIZE; ++i)
 	{
@@ -30,6 +49,7 @@ void GameController::displayBoard() const
 	for (int i = 0; i < (BOARD_SIZE) * 2 ; ++i)
 		std::cout << '-';
 	std::cout << std::endl;
+
 	for (int i = 0; i < BOARD_SIZE; ++i)
 	{
 		std::cout << i;
@@ -39,9 +59,19 @@ void GameController::displayBoard() const
 			if (m_board->pieceAtCoord(i, j) == EMPTY)
 				std::cout << ' ';
 			else if (m_board->pieceAtCoord(i, j) == BLACK)
-				std::cout << 'B';
-			else if (m_board->pieceAtCoord(i, j) == WHITE)
-				std::cout << 'W';
+			{
+				if (i == selectedRow && j == selectedCol)
+					std::cout << "\033[44mB\033[0m";
+				else
+					std::cout << 'B';
+			}
+			else if (m_board->pieceAtCoord(i, j) == RED)
+			{
+				if (i == selectedRow && j == selectedCol)
+					std::cout << "\033[31;44mR\033[0m";
+				else
+					std::cout << "\033[31mR\033[0m";
+			}
 
 		}
 		std::cout << '|';
@@ -51,40 +81,82 @@ void GameController::displayBoard() const
 			std::cout << '-';
 		std::cout << std::endl;
 	}
+	
 }
 
 void GameController::playGame()
 {
-	int currentRow = -1;
-	int currentCol = -1;
-	int moveRow = -1;
-	int moveCol = -1;
+	int row = -1;
+	int col = -1;
+	bool blackTurn = true;
+	bool jumpRestrict = false;
+	int turnColor = BLACK;
+	int status = INVALID_COORD;
 	while (m_board->gameWon() == NONE)
 	{
 		clearScreen();
 		displayBoard();
-		if (getMove(currentRow, currentCol, moveRow, moveCol) == SUCCESS)
+
+		if (blackTurn)
+			turnColor = BLACK;
+		else
+			turnColor = RED;
+
+		if (getSelection(row, col) == SUCCESS)
 		{
-			m_board->attemptMove(currentRow, currentCol, moveRow, moveCol);
+			if (jumpRestrict)
+			{
+				m_board->attemptMove(row, col, jumpRestrict);
+				if (m_board->jumpAvailable())
+					continue;
+				else
+				{
+					jumpRestrict = false;
+					m_board->deselectPiece();
+					blackTurn = !blackTurn;
+				}
+			}
+			else if (m_board->pieceAtCoord(row, col) == turnColor)
+				m_board->selectPiece(row, col, turnColor);
+			else if (m_board->pieceSelected())
+			{
+				status = m_board->attemptMove(row, col, jumpRestrict);
+				if (status == SUCCESS)
+				{
+					m_board->deselectPiece();
+					blackTurn = !blackTurn;
+				}
+				else if (status == TAKE_PIECE)
+				{
+					if (m_board->jumpAvailable())
+						jumpRestrict = true;
+					else
+					{
+						m_board->deselectPiece();
+						blackTurn = !blackTurn;
+					}
+				}
+			}
 		}
+		
 	}
 }
 
-int GameController::getMove(int& currentRow, int& currentCol, int& moveRow, int& moveCol)
+
+/*
+* Valid inputs are just 2 numbers in the form row,col
+* In input there is no comma, just the numbers
+*/
+int GameController::getSelection(int& row, int& col)
 {
 	std::string input;
 	std::getline(std::cin, input);
 
-	for (int i = 0; i < 4; ++i)
-	{
-		if (!isdigit(input[i]))
-			return INVALID_COORD;
-	}
+	if (input.size() != 2 || !isdigit(input[0]) || !isdigit(input[1]))
+		return INVALID_COORD;
 
-	currentRow = input[0] - '0';
-	currentCol = input[1] - '0';
-	moveRow = input[2] - '0';
-	moveCol = input[3] - '0';
+	row = input[0] - '0';
+	col = input[1] - '0';
 
 	return SUCCESS;
 }

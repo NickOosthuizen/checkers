@@ -1,36 +1,45 @@
 #ifndef GAMEBOARD_H
 #define GAMEBOARD_H
 
+#include <utility>
+
 const int NUM_PIECES = 12;
 const int BOARD_SIZE = 8;
 const int INVALID_COORD = -1;
 const int EMPTY = 0;
 const int SUCCESS = 1;
-const int BLACK = 2;
-const int WHITE = 3;
-const int NONE = 4;
+const int TAKE_PIECE = 2;
+const int BLACK = 3;
+const int RED = 4;
+const int NONE = 5;
 
 class Piece;
 
+
+/*
+* GameBoard Class, holds pieces and manages the movements 
+* of pieces around the board
+*/
 class GameBoard
 {
-public:
-	GameBoard();
-	~GameBoard();
-	int pieceAtCoord(int row, int col) const;
-	int attemptMove(int pieceRow, int pieceCol, int moveRow, int moveCol);
-	int takePiece(int row, int col);
-	int gameWon();
+	public:
+		GameBoard();
+		~GameBoard();
+		int pieceAtCoord(int row, int col) const;
+		int selectPiece(int row, int col, int turnColor);
+		void deselectPiece();
+		bool pieceSelected() const;
+		std::pair<int, int> selectedCoords() const;
+		int attemptMove(int moveRow, int moveCol, bool jumpRestrict);
+		bool jumpAvailable();
+		int takePiece(int row, int col);
+		int gameWon();
 
-private:
-	//BlackPiece* m_blackPieces[NUM_PIECES];
-	int m_numBlack;
-	//WhitePiece* m_whitePieces[NUM_PIECES];
-	int m_numWhite;
-	Piece* m_boardGrid[BOARD_SIZE][BOARD_SIZE];
-
-	friend class Test;
-
+	private:
+		int m_numBlack;
+		int m_numRed;
+		Piece* m_boardGrid[BOARD_SIZE][BOARD_SIZE];
+		Piece* m_selectedPiece;
 
 };
 

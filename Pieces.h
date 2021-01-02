@@ -6,58 +6,25 @@
 class GameBoard;
 
 /*
-* General Piece class, most 
+* General Piece class
 */
 class Piece
 {
 	public:
 		Piece(int startRow, int startCol, int color, GameBoard* board);
-		virtual ~Piece();
+		~Piece();
 		std::pair<int, int> pieceCoordinates() const;
 		int pieceColor() const;
-		GameBoard* pieceBoard() const;
+		void makeKing();
+		bool isKing() const;
 		void updateCoordinates(int row, int col);
-		virtual int movePiece(int row, int col) = 0;
+		int movePiece(int row, int col, bool jumpRestrict);
 
 	private:
 		int m_row, m_col, m_color;
+		bool m_king;
 		GameBoard* m_board;
 };
 
-
-class BlackPiece : public Piece
-{
-	public:
-		BlackPiece(int startRow, int startCol, GameBoard* board);
-		virtual ~BlackPiece();
-		virtual int movePiece(int row, int col);
-
-	private:
-
-};
-
-class WhitePiece : public Piece
-{
-	public:
-		WhitePiece(int startRow, int startCol, GameBoard* board);
-		virtual ~WhitePiece();
-		virtual int movePiece(int row, int col);
-
-	private: 
-
-};
-
-
-
-class King : public Piece
-{
-	public:
-		King(int startRow, int startCol, int color, GameBoard* board);
-		virtual ~King();
-		virtual int movePiece(int row, int col);
-
-	private:
-
-};
-
 #endif // PIECES_H
+
